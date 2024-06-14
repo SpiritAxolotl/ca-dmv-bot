@@ -4,16 +4,16 @@ import schedule from "node-schedule"
 import bot from "./bot.js"
 import moderation from "./moderation.js"
 
-var queue = []
+let queue = [];
 
 async function run() {
     while (queue.length == 0) {
         addPlatesToQueue(await moderation.process())
     }
-
+    
     await bot.post(queue.pop())
     fs.writeFileSync("./data/queue.json", JSON.stringify(queue))
-
+    
     moderation.updateStatus(queue.length)
     await moderation.notifyQueueAmount(queue.length)
 }
@@ -25,7 +25,7 @@ async function initialize() {
         moderatorRoleId: process.env.DISCORD_MODERATOR_ROLE_ID,
         ownerUserId: process.env.DISCORD_OWNER_USER_ID
     })
-
+    
     await bot.initialize({
         twitter: {
             appKey: process.env.TWITTER_CONSUMER_KEY,
@@ -33,23 +33,28 @@ async function initialize() {
             accessToken: process.env.TWITTER_ACCESS_TOKEN,
             accessSecret: process.env.TWITTER_ACCESS_TOKEN_SECRET
         },
-
+        
         mastodon: {
             url: process.env.MASTODON_URL,
             accessToken: process.env.MASTODON_ACCESS_TOKEN
         },
-
+        
         tumblr: {
             consumerKey: process.env.TUMBLR_CONSUMER_KEY,
             consumerSecret: process.env.TUMBLR_CONSUMER_SECRET,
             accessToken: process.env.TUMBLR_TOKEN,
             accessTokenSecret: process.env.TUMBLR_TOKEN_SECRET
         },
-
+        
         bluesky: {
             service: process.env.BLUESKY_SERVICE,
             identifier: process.env.BLUESKY_IDENTIFIER,
             password: process.env.BLUESKY_PASSWORD
+        },
+        
+        cohost: {
+            service: process.env.COHOST_EMAIL,
+            password: process.env.COHOST_PASSWORD_HASH
         }
     })
 
