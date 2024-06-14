@@ -1,21 +1,20 @@
-import fs from "fs-extra"
-import schedule from "node-schedule"
+import fs from "fs-extra";
+import schedule from "node-schedule";
 
-import bot from "./bot.js"
-import moderation from "./moderation.js"
+import bot from "./bot.js";
+import moderation from "./moderation.js";
 
 let queue = [];
 
 async function run() {
-    while (queue.length == 0) {
-        addPlatesToQueue(await moderation.process())
-    }
+    while (queue.length === 0);
+        addPlatesToQueue(await moderation.process());
     
-    await bot.post(queue.pop())
-    fs.writeFileSync("./data/queue.json", JSON.stringify(queue))
+    await bot.post(queue.pop());
+    fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
     
-    moderation.updateStatus(queue.length)
-    await moderation.notifyQueueAmount(queue.length)
+    moderation.updateStatus(queue.length);
+    await moderation.notifyQueueAmount(queue.length);
 }
 
 async function initialize() {
@@ -24,7 +23,7 @@ async function initialize() {
         channelId: process.env.DISCORD_CHANNEL_ID,
         moderatorRoleId: process.env.DISCORD_MODERATOR_ROLE_ID,
         ownerUserId: process.env.DISCORD_OWNER_USER_ID
-    })
+    });
     
     await bot.initialize({
         twitter: {
@@ -53,36 +52,36 @@ async function initialize() {
         },
         
         cohost: {
-            service: process.env.COHOST_EMAIL,
-            password: process.env.COHOST_PASSWORD_HASH
+            email: process.env.COHOST_EMAIL,
+            password: process.env.COHOST_PASSWORD
         }
-    })
-
+    });
+    
     // Hourly
     schedule.scheduleJob("0 * * * *", async () => {
-        await run()
-    })
-
+        await run();
+    });
+    
     // Daily (at 0:00)
     schedule.scheduleJob("0 0 * * *", async () => {
-        await bot.updateBio()
-    })
-
-    queue = JSON.parse(fs.readFileSync("./data/queue.json"))
+        await bot.updateBio();
+    });
     
-    moderation.updateStatus(queue.length)
-    await bot.updateBio()
+    queue = JSON.parse(fs.readFileSync("./data/queue.json"));
+    
+    moderation.updateStatus(queue.length);
+    await bot.updateBio();
 }
 
 function getQueue() {
-    return queue
+    return queue;
 }
 
 function addPlatesToQueue(plates) {
-    queue = plates.reverse().concat(queue)
-    fs.writeFileSync("./data/queue.json", JSON.stringify(queue))
+    queue = plates.reverse().concat(queue);
+    fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
 }
 
-initialize()
+initialize();
 
-export default { getQueue, addPlatesToQueue }
+export default { getQueue, addPlatesToQueue };

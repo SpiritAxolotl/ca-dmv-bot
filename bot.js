@@ -77,7 +77,7 @@ async function initialize(credentials) {
             // hack
             if (sourceRecord.plate === undefined)
                 sourceRecord.plate = Object.values(sourceRecord)[0];
-            if (!sourceRecord.plate.length || !["N","Y",""].includes(sourceRecord.status))
+            if (!sourceRecord.plate.length || !["N","Y","?"].includes(sourceRecord.status))
                 continue;
             parsedSourceRecords.push({
                 "text": sourceRecord.plate.toUpperCase(),
@@ -107,7 +107,7 @@ function correctClericalErrors(comment) {
     if (!comment.length)
         return "(not on record)";
     
-    let matches = ["no micro", "not on micro", "reg 17", "quickweb", "quick web"];
+    const matches = ["no micro", "not on micro", "reg 17", "quickweb", "quick web"];
     for (const match of matches)
         if (comment.toLowerCase().includes(match) || comment.toLowerCase().trim() === match)
             return "(not on record)";
@@ -163,7 +163,7 @@ function removePlateFromRecords(plate) {
 function removePlate(plate) {
     fs.unlinkSync(plate.fileName);
     
-    let posted = JSON.parse(fs.readFileSync("./data/posted.json"));
+    const posted = JSON.parse(fs.readFileSync("./data/posted.json"));
     posted.push(plate);
     fs.writeFileSync("./data/posted.json", JSON.stringify(posted));
 }
