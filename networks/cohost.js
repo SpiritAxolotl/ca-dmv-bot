@@ -1,5 +1,5 @@
 import fs from "fs-extra";
-import cohost from "cohost.js";
+import cohost from "cohost";
 import util from "node:util";
 
 import bot from "../bot.js";
@@ -13,23 +13,25 @@ let project;
 
 async function authenticate(credentials) {
     client = new cohost.User();
-    await client.login(credentials.email, credentials.password);
     
-    project = await user.getProjects()[0];
-    
-    return new Promise((resolve) => {
-        client.userInfo((_, data) => {
-            handle = project.user;
-            
-            console.log(`Logged into Cohost as "${handle}"`);
-            resolve();
-        });
+    return new Promise(async (resolve) => {
+        await client.login(credentials.email, credentials.password);
+        
+        project = client.getProjects()[0];
+        handle = "ca-dmv-bot"; //hardcoding it for now
+        
+        console.log(`Logged into Cohost as "${handle}"`);
+        resolve();
     });
 }
 
 async function post(plate) {
     const verdict = plate.verdict === true ? "ACCEPTED" : plate.verdict === false ? "DENIED" : "(NOT ON RECORD)";
-    const text = util.format(bot.formats.post, plate.customerComment, plate.dmvComment, verdict).replaceAll("\n", "<br>&nbsp;&nbsp;&nbsp;&nbsp;");
+    const text = util.format(bot.formats.post,
+        plate.customerComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
+        plate.dmvComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
+        verdict
+    );
     const altText = bot.formatAltText(plate.text).replaceAll(`"`, "").replaceAll(".", "");
     
     return new Promise(async (resolve) => {
@@ -37,21 +39,24 @@ async function post(plate) {
             postState: 0, //draft
             headline: "test",
             adultContent: false,
-            //I don't know where to put text content
-            blocks: {
-                type: "attachment",
-                attachment: {
-                    ...await project.uploadAttachment(
-                        id,
-                        fs.readFileSync(plate.fileName, { encoding: "base64" })
-                    )
+            blocks: [
+                {
+                    type: "markdown",
+                    content: text
+                },{
+                    type: "attachment",
+                    attachment: {
+                        ...await project.uploadAttachment(
+                            id,
+                            fs.readFileSync(plate.fileName, { encoding: "base64" })
+                        )
+                    }
                 }
-            },
+            ],
             cws: [],
             tags: [...globalTags, `VERDICT: ${verdict}`, plate.text]
         });
-        //resolve(`https://cohost.org/${handle}/post/${id}`);
-        resolve(true);
+        resolve(`https://cohost.org/${handle}/post/${id}-x`);
     });
 }
 

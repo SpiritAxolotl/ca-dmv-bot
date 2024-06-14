@@ -170,7 +170,7 @@ function removePlate(plate) {
 
 function drawPlateImage(text, fileName) {
     return new Promise((resolve) => {
-        const plate = gm(1280, 720, "#FFFFFFFF");
+        let plate = gm(1280, 720, "#FFFFFFFF");
         
         // Draw license plate text
         plate.fill("#1F2A64");

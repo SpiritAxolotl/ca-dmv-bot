@@ -92,7 +92,7 @@ function initialize(credentials) {
                     
                     queue = queue.map(plate => `\`${plate.text}\``);
                     
-                    await interaction.editReply(queue.length === 0 ? "There are no plates in the queue." : `There are **${queue.length}** plate(s) left to be posted, and they are (from first to last): ${queue.reverse().join(", ")}.`);
+                    await interaction.editReply(queue.length === 0 ? "There are no plates in the queue." : `There are **${queue.length}** plate${queue.length!==1?"s":""} left to be posted, and they are (from first to last): ${queue.reverse().join(", ")}.`);
                     break;
             }
         });
@@ -157,7 +157,8 @@ function process() {
 async function startReviewProcessForUser(interaction) {
     let approvedPlates = [];
     let isReviewing = true;
-    let tag = interaction.user.tag;
+    const tag = interaction.user.tag;
+    const userid = interaction.user.id;
     
     console.log(`"${tag}" started reviewing plates.`);
     
@@ -215,21 +216,21 @@ async function startReviewProcessForUser(interaction) {
                 
                 switch (response.customId) {
                     case "approve":
-                        console.log(`"${tag}" approved plate "${plate.text}".`);
+                        console.log(`"${tag}" (${userid}) approved plate \`${plate.text}\`.`);
                         app.addPlatesToQueue([plate]);
                         approvedPlates.push(plate);
                         updateStatus(app.getQueue().length);
                         await interaction.editReply(`**Approved \`${plate.text}\`.** Fetching next plate...`);
                         break;
                     case "disapprove":
-                        console.log(`"${tag}" disapproved plate "${plate.text}".`);
+                        console.log(`"${tag}" (${userid}) disapproved plate \`${plate.text}\`.`);
                         bot.removePlate(plate);
                         await interaction.editReply(`**Disapproved \`${plate.text}\`.** Fetching next plate...`);
                         break
                     case "finished":
                         console.log(`"${tag}" stopped reviewing plates.`);
                         isReviewing = false;
-                        await interaction.editReply(`Stopped reviewing plates. You approved **${approvedPlates.length} plate(s).** You may always enter the command \`/review\` at any time to restart the review process and \`/queue\` to see all plates in queue to be posted.`);
+                        await interaction.editReply(`Stopped reviewing plates. You approved **${approvedPlates.length} plate${approvedPlates.length!==1?"s":""}.** You may always enter the command </review:1251277993691709474> at any time to restart the review process and </queue:1251277993691709475> to see all plates in queue to be posted.`);
                         break;
                 }
                 
@@ -243,7 +244,7 @@ async function startReviewProcessForUser(interaction) {
                     await interaction.editReply({
                         components: [],
                         files: [],
-                        content: `Stopped reviewing plates (timed out). You approved **${approvedPlates.length} plate(s).** You may always enter the command \`/review\` at any time to restart the review process.`
+                        content: `Stopped reviewing plates (timed out). You approved **${approvedPlates.length} plate${approvedPlates.length!==1?"s":""}.** You may always enter the command </review:1251277993691709474> at any time to restart the review process.`
                     });
                     
                     isReviewing = false;

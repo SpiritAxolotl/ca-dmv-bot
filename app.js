@@ -1,3 +1,4 @@
+import "dotenv/config";
 import fs from "fs-extra";
 import schedule from "node-schedule";
 
@@ -18,6 +19,8 @@ async function run() {
 }
 
 async function initialize() {
+    //console.log("IS THE ENVIRONMENT SPECIFIED:");
+    //console.log(process.env.TEST);
     await moderation.initialize({
         token: process.env.DISCORD_TOKEN,
         channelId: process.env.DISCORD_CHANNEL_ID,
@@ -26,7 +29,7 @@ async function initialize() {
     });
     
     await bot.initialize({
-        twitter: {
+        /*twitter: {
             appKey: process.env.TWITTER_CONSUMER_KEY,
             appSecret: process.env.TWITTER_CONSUMER_SECRET,
             accessToken: process.env.TWITTER_ACCESS_TOKEN,
@@ -49,7 +52,7 @@ async function initialize() {
             service: process.env.BLUESKY_SERVICE,
             identifier: process.env.BLUESKY_IDENTIFIER,
             password: process.env.BLUESKY_PASSWORD
-        },
+        },*/
         
         cohost: {
             email: process.env.COHOST_EMAIL,
