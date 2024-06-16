@@ -25,7 +25,8 @@ async function initialize() {
         token: process.env.DISCORD_TOKEN,
         channelId: process.env.DISCORD_CHANNEL_ID,
         moderatorRoleId: process.env.DISCORD_MODERATOR_ROLE_ID,
-        ownerUserId: process.env.DISCORD_OWNER_USER_ID
+        ownerUserId: process.env.DISCORD_OWNER_USER_ID,
+        trustedOptInRoleId: process.env.DISCORD_TRUSTED_OPTIN_ROLE_ID
     });
     
     await bot.initialize({
@@ -56,7 +57,8 @@ async function initialize() {
         
         cohost: {
             email: process.env.COHOST_EMAIL,
-            password: process.env.COHOST_PASSWORD
+            password: process.env.COHOST_PASSWORD,
+            handle: process.env.COHOST_HANDLE
         }
     });
     

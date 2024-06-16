@@ -18,7 +18,7 @@ async function authenticate(credentials) {
         await client.login(credentials.email, credentials.password);
         
         project = client.getProjects()[0];
-        handle = "ca-dmv-bot"; //hardcoding it for now
+        handle = credentials.handle;
         
         console.log(`Logged into Cohost as "${handle}"`);
         resolve();
@@ -30,32 +30,37 @@ async function post(plate) {
     const text = util.format(bot.formats.post,
         plate.customerComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
         plate.dmvComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
+        plate.approver.tag.replaceAll("-->", ""),
+        plate.approver.id,
         verdict
     );
-    const altText = bot.formatAltText(plate.text).replaceAll(`"`, "").replaceAll(".", "");
+    //const altText = bot.formatAltText(plate.text).replaceAll(`"`, "").replaceAll(".", "");
     
     return new Promise(async (resolve) => {
         const id = await cohost.Post.create(project, {
             postState: 0, //draft
             headline: "test",
             adultContent: false,
-            blocks: [
-                {
-                    type: "markdown",
-                    content: text
-                },{
-                    type: "attachment",
-                    attachment: {
-                        ...await project.uploadAttachment(
-                            id,
-                            fs.readFileSync(plate.fileName, { encoding: "base64" })
-                        )
-                    }
-                }
-            ],
-            cws: [],
+            blocks: [{
+                type: "markdown",
+                content: text
+            }],
             tags: [...globalTags, `VERDICT: ${verdict}`, plate.text]
         });
+        const attachmentData = await project.uploadAttachment(
+            id,
+            fs.readFileSync(plate.fileName, { encoding: "base64" })
+        );
+        /*let basePost = "???";
+        await cohost.Post.update(project, id, {
+            ...basePost,
+            postState: 1,
+            blocks: [
+                ...basePost.blocks,
+                { type: "attachment", attachment: { ...attachmentData } }
+            ],
+            tags: [...basePost.tags]
+        });*/
         resolve(`https://cohost.org/${handle}/post/${id}-x`);
     });
 }

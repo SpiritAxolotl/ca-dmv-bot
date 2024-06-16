@@ -34,7 +34,7 @@ const formats = {
     altText: `California license plate with text "%s".`,
     //update this for crediting people maybe?
     bio: `Real personalized license plate applications that the California DMV received from 2015-2017. Posts hourly. Not the CA DMV. (%d% complete)`,
-    post: `Customer: %s\nDMV: %s\n\nVerdict: %s`
+    post: `Customer: %s\nDMV: %s\n\nVerdict: %s\n<!-- plate approved by \`%s\` (%s) -->`,
 };
 
 let records = [];
@@ -100,8 +100,6 @@ async function initialize(credentials) {
  * so that the plate may still be posted while preserving clarity.
  * 
  * This also strips enclosing quotation marks and duplicate quotation marks.
- * 
- * This *also* adds two spaces to the beginnings of newlines
  */
 function correctClericalErrors(comment) {
     if (!comment.length)
@@ -114,7 +112,7 @@ function correctClericalErrors(comment) {
     
     if (comment[0] === `"` && comment[comment.length - 1] === `"`)
         comment = comment.slice(1, -1);
-    comment = comment.replaceAll(`""`, `"`).replaceAll(`\n`, `\n  `).replaceAll(/[^\x00-\x7f]/g, " ");
+    comment = comment.replaceAll(`""`, `"`).replaceAll(/[^\x00-\x7f]/g, " ");
     return comment;
 }
 
@@ -151,7 +149,8 @@ async function getPlate() {
         "text": plate.text,
         "customerComment": plate.customerComment,
         "dmvComment": plate.dmvComment,
-        "verdict": plate.verdict
+        "verdict": plate.verdict,
+        "approver": undefined //to be set by moderation.js
     };
 }
 
