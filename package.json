@@ -19,7 +19,7 @@
   "homepage": "https://github.com/rjindael/ca-dmv-bot#readme",
   "dependencies": {
     "@atproto/api": "^0.12.2",
-    "cohost": "^0.0.3",
+    "cohost-api": "^0.0.9",
     "csv-parser": "^3.0.0",
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.5",

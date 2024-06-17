@@ -208,7 +208,7 @@ async function optInForUser(interaction) {
             );
         const message = await interaction.editReply({
             components: [ buttons ],
-            content: `By obtaining this role, you agree to adhere to the terms (in the pinned message of the dedicated channel) of which license plates are appropriate to post.\n(This message will time out in one minute)`,
+            content: `By obtaining this role, you agree to follow the guidelines (pinned in the dedicated channel) regarding which license plates are appropriate to post.\n\n(This message will time out in one minute)`,
             ephemeral: true
         });
         

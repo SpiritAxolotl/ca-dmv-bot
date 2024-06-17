@@ -71,7 +71,7 @@ async function initialize(credentials) {
          */
         const parsedSourceRecords = [];
         
-        const verdict = {Y:true, N: false};
+        const verdict = {Y: true, N: false};
         
         for (const sourceRecord of sourceRecords) {
             // hack
@@ -122,7 +122,7 @@ async function post(plate) {
     const notification = await moderation.notify(plate);
     const urls = {};
     
-    for (let [_, service] of Object.entries(services)) {
+    for (const [_, service] of Object.entries(services)) {
         try {
             urls[service.name] = await service.post(plate);
         } catch (e) {
@@ -210,7 +210,7 @@ async function updateBio() {
         try {
             await service.updateBio(util.format(formats.bio, percentage));
         } catch (e) {
-            console.log(`Service "${service.name}" had an error while updating the account bio. Error: ${e.toString}`);
+            console.log(`Service "${service.name}" had an error while updating the account bio. Error: ${e.toString()}`);
         }
     }
 }

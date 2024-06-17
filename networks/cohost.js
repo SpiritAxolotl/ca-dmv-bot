@@ -1,5 +1,5 @@
 import fs from "fs-extra";
-import cohost from "cohost";
+import * as cohost from "cohost-api";
 import util from "node:util";
 
 import bot from "../bot.js";
@@ -7,18 +7,24 @@ import bot from "../bot.js";
 const name = "Cohost";
 const globalTags = [ "automated post", "bot", "ca-dmv-bot", "The Cohost Bot Feed" ];
 
-let client;
+let user;
 let handle;
 let project;
 
 async function authenticate(credentials) {
-    client = new cohost.User();
+    const client = new cohost.Client();
     
     return new Promise(async (resolve) => {
-        await client.login(credentials.email, credentials.password);
+        user = await client.login(credentials.email, credentials.password);
         
-        project = client.getProjects()[0];
-        handle = credentials.handle;
+        project = user?.projects[0];
+        handle = project?.handle;
+        if (!project) {
+            console.log("Couldn't log in.");
+            resolve();
+        }
+        
+        user?.switchProject(project);
         
         console.log(`Logged into Cohost as "${handle}"`);
         resolve();
@@ -37,31 +43,16 @@ async function post(plate) {
     //const altText = bot.formatAltText(plate.text).replaceAll(`"`, "").replaceAll(".", "");
     
     return new Promise(async (resolve) => {
-        const id = await cohost.Post.create(project, {
-            postState: 0, //draft
-            headline: "test",
-            adultContent: false,
-            blocks: [{
-                type: "markdown",
-                content: text
-            }],
-            tags: [...globalTags, `VERDICT: ${verdict}`, plate.text]
-        });
-        const attachmentData = await project.uploadAttachment(
-            id,
-            fs.readFileSync(plate.fileName, { encoding: "base64" })
-        );
-        /*let basePost = "???";
-        await cohost.Post.update(project, id, {
-            ...basePost,
-            postState: 1,
-            blocks: [
-                ...basePost.blocks,
-                { type: "attachment", attachment: { ...attachmentData } }
-            ],
-            tags: [...basePost.tags]
-        });*/
-        resolve(`https://cohost.org/${handle}/post/${id}-x`);
+        const post = new cohost.PostBuilder()
+            .addMarkdownBlock(text);
+        const tags = [...globalTags, `VERDICT: ${verdict}`, plate.text];
+        for (const tag of tags)
+            post.addTag(tag);
+        post.build();
+        project.createDraft(post);
+        project.addAttachment(post, fs.readFileSync(plate.fileName, { encoding: "base64" }));
+        cohost.publishDraft(post);
+        resolve(`https://cohost.org/${handle}/post/${post.id}-x`);
     });
 }
 
