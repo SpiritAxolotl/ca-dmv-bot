@@ -161,7 +161,7 @@ function process() {
         const message = await channel.send({
             components: [ buttons ],
             //remove these backslashes when deploying
-            content: `\\<@&${moderatorRoleId}\\> The queue is empty and new plates need to be reviewed! </review:1251277993691709474>`
+            content: `<@&${moderatorRoleId}> The queue is empty and new plates need to be reviewed! </review:1251277993691709474>`
         });
         
         let opportunist = null;
