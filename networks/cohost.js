@@ -1,6 +1,9 @@
-import fs from "fs-extra";
-import * as cohost from "cohost-api";
+import cohost from "cohost";
+import app from "./../app.js";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import util from "node:util";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 import bot from "../bot.js";
 
@@ -12,21 +15,23 @@ let handle;
 let project;
 
 async function authenticate(credentials) {
-    const client = new cohost.Client();
+    user = new cohost.User();
     
     return new Promise(async (resolve) => {
-        user = await client.login(credentials.email, credentials.password);
+        await user.login(credentials.email, credentials.password);
         
-        project = user?.projects[0];
-        handle = project?.handle;
+        handle = credentials.handle;
+        project = (await user.getProjects()).find((p) => p.handle === handle);
+        
         if (!project) {
-            console.log("Couldn't log in.");
+            console.error(
+                new Error(`No cohost projects found for ${handle}`)
+            );
             resolve();
+            return undefined;
         }
         
-        user?.switchProject(project);
-        
-        console.log(`Logged into Cohost as "${handle}"`);
+        app.log(`Logged into Cohost as "${handle}"`);
         resolve();
     });
 }
@@ -34,25 +39,44 @@ async function authenticate(credentials) {
 async function post(plate) {
     const verdict = plate.verdict === true ? "ACCEPTED" : plate.verdict === false ? "DENIED" : "(NOT ON RECORD)";
     const text = util.format(bot.formats.post,
+        plate.text,
         plate.customerComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
         plate.dmvComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
-        plate.approver.tag.replaceAll("-->", ""),
-        plate.approver.id,
-        verdict
+        verdict,
+        plate.approval.user.tag, //thankfully we don't need to sanitize because discord's new username system can only have characters that match /[a-z0-9_-]/ (we are hoping a bot user doesn't do this)
+        plate.approval.user.id,
+        plate.approval.time.toISOString()
     );
-    //const altText = bot.formatAltText(plate.text).replaceAll(`"`, "").replaceAll(".", "");
+    const altText = bot.formatAltText(plate.text).replaceAll(`"`, "").replaceAll(".", "");
     
     return new Promise(async (resolve) => {
-        const post = new cohost.PostBuilder()
-            .addMarkdownBlock(text);
-        const tags = [...globalTags, `VERDICT: ${verdict}`, plate.text];
-        for (const tag of tags)
-            post.addTag(tag);
-        post.build();
-        project.createDraft(post);
-        project.addAttachment(post, fs.readFileSync(plate.fileName, { encoding: "base64" }));
-        cohost.publishDraft(post);
-        resolve(`https://cohost.org/${handle}/post/${post.id}-x`);
+        const basePost = {
+            postState: 0, //draft
+            headline: "",
+            adultContent: false,
+            blocks: [{
+                type: "markdown",
+                markdown: { content: text }
+            }],
+            tags: [...globalTags, `VERDICT: ${verdict}`, `license plate "${plate.text}"`],
+            cws: []
+        };
+        const draftId = await cohost.Post.create(project, basePost);
+        app.log("uploading attachment...");
+        const attachmentData = await project.uploadAttachment(
+            draftId,
+            path.resolve(__dirname, plate.fileName)
+        );
+        await cohost.Post.update(project, draftId, {
+            ...basePost,
+            postState: 1,
+            blocks: [
+                ...basePost.blocks,
+                { type: "attachment", attachment: { ...attachmentData, altText: altText } }
+            ],
+            tags: [...basePost.tags]
+        });
+        resolve(`https://cohost.org/${handle}/post/${draftId}-${plate.text.toLowerCase().replaceAll(/[^a-z0-9-]/g, "-")}-plate`);
     });
 }
 

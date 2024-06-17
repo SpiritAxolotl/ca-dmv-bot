@@ -1,11 +1,22 @@
 import "dotenv/config";
 import fs from "fs-extra";
 import schedule from "node-schedule";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 import bot from "./bot.js";
 import moderation from "./moderation.js";
 
 let queue = [];
+
+async function log(...data) {
+    const str = `${(new Date()).toISOString()}: ${data.join(" ")}`;
+    console.log(str);
+    const channel = moderation.client.channels.cache.find(channel => channel.id === process.env.DISCORD_LOG_CHANNEL_ID);
+    await channel.send(str);
+    fs.appendFileSync(path.join(__dirname, "data/log.txt"), str+"\n");
+}
 
 async function run() {
     while (queue.length === 0);
@@ -89,4 +100,4 @@ function addPlatesToQueue(plates) {
 
 initialize();
 
-export default { getQueue, addPlatesToQueue };
+export default { log, getQueue, addPlatesToQueue };

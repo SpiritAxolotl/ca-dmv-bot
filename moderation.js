@@ -34,20 +34,21 @@ function initialize(credentials) {
         client.once(Events.ClientReady, async () => {
             await deployCommands(credentials.token);
             
-            console.log(`Logged into Discord as "${client.user.tag}" (${client.user.id})`);
+            app.log(`Logged into Discord as "${client.user.tag}" (${client.user.id})`);
             channel = client.channels.cache.find(channel => channel.id === credentials.channelId);
             
             resolve();
         })
         
         client.on(Events.InteractionCreate, async (interaction) => {
+            let ephemeral = interaction.options?.getBoolean("ephemeral") ?? interaction.commandName !== "review";
             if (!interaction.isChatInputCommand() || !interactionFilter(interaction))
                 return;
             
             let queue = app.getQueue();
             
             //if (![].includes(interaction.commandName))
-            await interaction.deferReply({ ephemeral: true });
+            await interaction.deferReply({ ephemeral: ephemeral });
             
             await interaction.guild.roles.fetch();
             
@@ -99,14 +100,14 @@ function initialize(credentials) {
                     break;
                 case "optout":
                     if (!interaction.member.roles.cache.find(role => role.id === moderatorRoleId)) {
-                        console.log(`"${interaction.user.tag}" (${interaction.user.id}) tried to opt out without the moderator role!`);
+                        app.log(`"${interaction.user.tag}" (${interaction.user.id}) tried to opt out without the moderator role!`);
                         await interaction.editReply({
                             content: `You didn't have the <@&${moderatorRoleId}> role!`,
                             ephemeral: true
                         });
                         return;
                     }
-                    console.log(`"${interaction.user.tag}" (${interaction.user.id}) opted out`);
+                    app.log(`"${interaction.user.tag}" (${interaction.user.id}) opted out`);
                     interaction.member.roles.remove(moderatorRoleId);
                     await interaction.editReply({
                         content: `You've successfully opted out of the <@&${moderatorRoleId}> role.`,
@@ -124,7 +125,12 @@ async function deployCommands(token) {
         new SlashCommandBuilder().setName("ping").setDescription("Replies with pong!").toJSON(),
         new SlashCommandBuilder().setName("post").setDescription("Manually posts the next plate in queue").toJSON(),
         new SlashCommandBuilder().setName("bio").setDescription("Updates the bot's bio").toJSON(),
-        new SlashCommandBuilder().setName("review").setDescription("Review some plates").toJSON(),
+        new SlashCommandBuilder().setName("review").setDescription("Review some plates").addBooleanOption(option =>
+            option
+                .setName("ephemeral")
+                .setDescription("Whether or not the reply message should only be visible to you. Default: False")
+                .setRequired(false)
+        ).toJSON(),
         new SlashCommandBuilder().setName("queue").setDescription("Returns the plates in the queue").toJSON(),
         new SlashCommandBuilder().setName("optin").setDescription("Opt-in to the moderator role").toJSON(),
         new SlashCommandBuilder().setName("optout").setDescription("Opt-out of the moderator role").toJSON(),
@@ -180,7 +186,7 @@ async function optInForUser(interaction) {
     const tag = interaction.user.tag;
     const userid = interaction.user.id;
     
-    console.log(`"${tag}" (${userid}) ran the opt-in command!`);
+    app.log(`"${tag}" (${userid}) ran the opt-in command!`);
     
     await new Promise(async (resolve) => {
         if (interaction.member.roles.cache.find(role => role.id === moderatorRoleId)) {
@@ -221,7 +227,7 @@ async function optInForUser(interaction) {
         collector.on("collect", async (response) => {
             switch (response.customId) {
                 case "agree":
-                    console.log(`"${tag}" (${userid}) opted in!`);
+                    app.log(`"${tag}" (${userid}) opted in!`);
                     interaction.member.roles.add(moderatorRoleId);
                     await interaction.editReply({
                         content: `Thank you for agreeing to participate! You now have the <@&${moderatorRoleId}> role, and have access to the ${channel} channel.`,
@@ -230,7 +236,7 @@ async function optInForUser(interaction) {
                     });
                     break;
                 case "nevermind":
-                    console.log(`"${tag}" (${userid}) had second thoughts about opting in.`);
+                    app.log(`"${tag}" (${userid}) had second thoughts about opting in.`);
                     await interaction.editReply({
                         content: `Ok. Run the command again if you change your mind!`,
                         components: [],
@@ -265,7 +271,7 @@ async function startReviewProcessForUser(interaction) {
     const tag = interaction.user.tag;
     const userid = interaction.user.id;
     
-    console.log(`"${tag}" (${userid}) started reviewing plates.`);
+    app.log(`"${tag}" (${userid}) started reviewing plates.`);
     
     while (isReviewing) {
         await new Promise(async (resolve) => {
@@ -295,11 +301,11 @@ async function startReviewProcessForUser(interaction) {
                         .setDisabled(approvedPlates.length === 0)
                 );
             
-            const examplePostText = util.format(bot.formats.post,
+            const examplePostText = util.format(bot.formats.previewpost,
                 plate.customerComment,
                 plate.dmvComment,
                 plate.verdict === true ? "ACCEPTED" :  plate.verdict === false ? "DENIED" : "(NOT ON RECORD)"
-            ).replace(/\n<!--.+/g, "");
+            );
             
             const message = await interaction.editReply({
                 files: [ new AttachmentBuilder(plate.fileName) ],
@@ -318,29 +324,36 @@ async function startReviewProcessForUser(interaction) {
             collector.on("collect", async (response) => {
                 await interaction.editReply({
                     "components": [],
-                    "files": []
+                    "files": [],
                 });
+                let text = "";
                 
                 switch (response.customId) {
                     case "approve":
-                        console.log(`"${tag}" (${userid}) approved plate \`${plate.text}\`.`);
-                        plate.approver = interaction.user;
+                        app.log(`"${tag}" (${userid}) approved plate \`${plate.text}\`.`);
+                        plate.approval.user = interaction.user;
+                        plate.approval.time = new Date();
                         app.addPlatesToQueue([plate]);
                         approvedPlates.push(plate);
                         updateStatus(app.getQueue().length);
-                        await interaction.editReply(`**Approved \`${plate.text}\`.** Fetching next plate...`);
+                        text = `**Approved \`${plate.text}\`.** Fetching next plate...`;
                         break;
                     case "disapprove":
-                        console.log(`"${tag}" (${userid}) disapproved plate \`${plate.text}\`.`);
+                        app.log(`"${tag}" (${userid}) disapproved plate \`${plate.text}\`.`);
                         bot.removePlate(plate);
-                        await interaction.editReply(`**Disapproved \`${plate.text}\`.** Fetching next plate...`);
+                        text = `**Disapproved \`${plate.text}\`.** Fetching next plate...`;
                         break
                     case "finished":
-                        console.log(`"${tag}" stopped reviewing plates.`);
+                        app.log(`"${tag}" (${userid}) stopped reviewing plates.`);
                         isReviewing = false;
-                        await interaction.editReply(`Stopped reviewing plates. You approved **${approvedPlates.length} plate${approvedPlates.length!==1?"s":""}.** You may always enter the command </review:1251277993691709474> to restart the review process and </queue:1251277993691709475> to see all plates in queue to be posted.`);
+                        text = `Stopped reviewing plates. You approved **${approvedPlates.length} plate${approvedPlates.length!==1?"s":""}.** You may always enter the command </review:1251277993691709474> to restart the review process and </queue:1251277993691709475> to see all plates in queue to be posted.`;
                         break;
                 }
+                await interaction.editReply({
+                    "components": [],
+                    "files": [],
+                    "content": text
+                });
                 
                 response.deferUpdate({ ephemeral: true });
                 collector.stop();
@@ -372,7 +385,7 @@ async function notify(plate) {
 }
 
 async function updateNotification(notification, plate, urls, finished) {
-    const body = `Posting plate \`${plate.text}\`...${finished ? " finished!" : ""}\n`;
+    let body = `Posting plate \`${plate.text}\`...${finished ? " finished!" : ""}\n`;
     
     for (const [service, url] of Object.entries(urls))
         body += `**${service}:** <${url}>\n`;
@@ -397,5 +410,6 @@ export default {
     notify,
     updateNotification,
     notifyQueueAmount,
-    updateStatus
+    updateStatus,
+    client
 };

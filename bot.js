@@ -5,6 +5,7 @@ import gm from "gm";
 import path from "node:path";
 import strToStream from "string-to-stream";
 import util from "node:util";
+import app from "./app.js";
 
 import moderation from "./moderation.js";
 //import twitter from "./networks/twitter.js";
@@ -34,7 +35,8 @@ const formats = {
     altText: `California license plate with text "%s".`,
     //update this for crediting people maybe?
     bio: `Real personalized license plate applications that the California DMV received from 2015-2017. Posts hourly. Not the CA DMV. (%d% complete)`,
-    post: `Customer: %s\nDMV: %s\n\nVerdict: %s\n<!-- plate approved by \`%s\` (%s) -->`,
+    post: `<!-- %s plate -->\nCustomer: %s\nDMV: %s\n\nVerdict: %s\n<!-- plate approved by \`%s\` (%s) on %s -->`,
+    previewpost: `Customer: %s\nDMV: %s\n\nVerdict: %s\n`
 };
 
 let records = [];
@@ -150,7 +152,10 @@ async function getPlate() {
         "customerComment": plate.customerComment,
         "dmvComment": plate.dmvComment,
         "verdict": plate.verdict,
-        "approver": undefined //to be set by moderation.js
+        "approval": { //to be set by moderation.js
+            user: "",
+            time: new Date(0)
+        }
     };
 }
 
@@ -177,8 +182,12 @@ function drawPlateImage(text, fileName) {
         plate.drawText(0, 80, text, "center").raise(10, 190);
         
         // Draw watermark
+        plate.fill("none");
+        plate.font(path.join(__dirname, "resources", "fonts", "cascadiacode.ttf"), 25);
+        plate.stroke("#AAAAAA", 2);
+        plate.drawText(25, 25, repositoryURL, "southeast");
+        plate.stroke("none");
         plate.fill("#00000032");
-        plate.font(path.join(__dirname, "resources", "fonts", "cascadiacode.ttf"), 20);
         plate.drawText(25, 25, repositoryURL, "southeast");
         
         /**
@@ -210,7 +219,7 @@ async function updateBio() {
         try {
             await service.updateBio(util.format(formats.bio, percentage));
         } catch (e) {
-            console.log(`Service "${service.name}" had an error while updating the account bio. Error: ${e.toString()}`);
+            app.log(`Service "${service.name}" had an error while updating the account bio. Error: ${e.toString()}`);
         }
     }
 }
