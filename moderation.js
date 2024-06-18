@@ -353,7 +353,7 @@ async function startReviewProcessForUser(interaction) {
                     case "approve":
                         app.log(`"${tag}" (${userid}) approved plate \`${plate.text}\`.`);
                         plate.approval.user = interaction.user;
-                        plate.approval.time = new Date();
+                        plate.approval.time = (new Date()).toISOString();
                         app.addPlatesToQueue([plate]);
                         approvedPlates.push(plate);
                         updateStatus();
@@ -414,7 +414,8 @@ async function updateNotification(notification, plate, urls, finished) {
     await notification.edit(body);
 }
 
-async function notifyQueueAmount(queue) {
+async function notifyQueueAmount() {
+    const queue = app.getQueue();
     const one = queue.length!==1?"s":"";
     await channel.send(`There ${one?"is":"are"} **${queue.length}** plate${one?"":"s"} left in the queue.`);
     
