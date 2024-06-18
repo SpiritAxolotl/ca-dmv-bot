@@ -190,11 +190,11 @@ async function post(interaction) {
     
     await interaction.editReply("Posting plate...");
     
-    //fix this in future by defining queue
-    //if (queue.length === 0) {
-    //    await interaction.editReply("There is no plate to post - please review some plates first.");
-    //    return;
-    //}
+    const queue = app.getQueue();
+    if (queue.length === 0) {
+        await interaction.editReply("There is no plate to post - please review some plates first.");
+        return;
+    }
     
     await bot.post(queue.pop());
     fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
