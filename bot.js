@@ -194,7 +194,7 @@ function drawPlateImage(text, fileName) {
          * Overlay this image with the license plate template
          * The way I do this is stupid, but unless gm.composite can accept a stream then this will have to do.
          */
-        const overlayFileName = path.join(__dirname, "data", "tmp", `${path.basename(fileName).replace(/\.[^/.]+$/, "")}_overlay.png`);
+        const overlayFileName = path.join(__dirname, "data", "tmp", `${path.basename(fileName).replace(/\.[^/.]+$/, "")}_overlay.png`).replaceAll("\\", "/");
         
         plate.write(overlayFileName, (error) => {
             if (error)

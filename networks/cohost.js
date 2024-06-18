@@ -81,7 +81,7 @@ async function post(plate) {
 }
 
 async function updateBio() {
-  //no way to do this in cohost.js yet :(
+    //no way to do this in cohost.js yet :(
 }
 
 export default { name, authenticate, post, updateBio };

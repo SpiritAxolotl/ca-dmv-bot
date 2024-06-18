@@ -42,7 +42,9 @@ function initialize(credentials) {
         
         client.on(Events.InteractionCreate, async (interaction) => {
             let ephemeral = interaction.options?.getBoolean("ephemeral") ?? interaction.commandName !== "review";
-            if (!interaction.isChatInputCommand() || !interactionFilter(interaction))
+            if (!interaction.isChatInputCommand() ||
+                !interactionFilter(interaction)
+            )
                 return;
             
             let queue = app.getQueue();
@@ -67,25 +69,7 @@ function initialize(credentials) {
                     
                     break;
                 case "post":
-                    if (interaction.user.id !== ownerUserId) {
-                        await interaction.editReply("You are not authorized to use this command.");
-                        return;
-                    }
-                    
-                    await interaction.editReply("Posting plate...");
-                    
-                    if (queue.length === 0) {
-                        await interaction.editReply("There is no plate to post - please review some plates first.");
-                        return;
-                    }
-                    
-                    await bot.post(queue.pop());
-                    fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
-                    
-                    updateStatus(queue.length);
-                    await notifyQueueAmount(queue.length);
-                    
-                    await interaction.editReply("Posted plate!");
+                    await post(interaction);
                     break;
                 case "review":
                     await startReviewProcessForUser(interaction);
@@ -114,6 +98,13 @@ function initialize(credentials) {
                         ephemeral: true
                     });
                     break;
+                case "run":
+                    await app.run();
+                    await interaction.editReply({
+                        content: `Run!`,
+                        ephemeral: true
+                    });
+                    break;
             }
         });
     });
@@ -124,6 +115,7 @@ async function deployCommands(token) {
     const commands = [
         new SlashCommandBuilder().setName("ping").setDescription("Replies with pong!").toJSON(),
         new SlashCommandBuilder().setName("post").setDescription("Manually posts the next plate in queue").toJSON(),
+        new SlashCommandBuilder().setName("run").setDescription("Manually run the bot!").toJSON(),
         new SlashCommandBuilder().setName("bio").setDescription("Updates the bot's bio").toJSON(),
         new SlashCommandBuilder().setName("review").setDescription("Review some plates").addBooleanOption(option =>
             option
@@ -144,10 +136,17 @@ async function deployCommands(token) {
 
 async function interactionFilter(interaction) {
     const member = channel.guild.members.cache.get(interaction.user.id);
-    return !member.bot && member.roles.cache.has(moderatorRoleId);
+    const sameChannel = interaction.channelId === channel.id;
+    const testing = process.env.TESTING;
+    const owner = interaction.user.id === ownerUserId;
+    if (owner) return true;
+    if (!sameChannel) return false;
+    if (testing && member.bot && member.roles.cache.has(moderatorRoleId)) return true;
+    if (!member.bot && member.roles.cache.has(moderatorRoleId)) return true;
+    return false;
 }
 
-function process() {
+function _process() {
     return new Promise(async (resolve) => {
         const buttons = new ActionRowBuilder()
             .addComponents(
@@ -157,11 +156,10 @@ function process() {
                     .setCustomId("review")
                     .setDisabled(false)
             );
-        
+        const escape = process.env.TESTING ? "\\" : "";
         const message = await channel.send({
             components: [ buttons ],
-            //remove these backslashes when deploying
-            content: `<@&${moderatorRoleId}> The queue is empty and new plates need to be reviewed! </review:1251277993691709474>`
+            content: `${escape}<@&${moderatorRoleId}${escape}> The queue is empty and new plates need to be reviewed! </review:1251277993691709474>`
         });
         
         let opportunist = null;
@@ -169,6 +167,8 @@ function process() {
         collector.on("collect", async (interaction) => {
             if (opportunist !== null)
                 return;
+            
+            await interaction.deferReply({ ephemeral: false });
             
             opportunist = channel.guild.members.cache.get(interaction.user.id);
             await message.edit({
@@ -178,8 +178,30 @@ function process() {
             
             const plates = await startReviewProcessForUser(interaction);
             resolve(plates);
-        })
-    })
+        });
+    });
+}
+
+async function post(interaction) {
+    if (interaction.user.id !== ownerUserId) {
+        await interaction.editReply("You are not authorized to use this command.");
+        return;
+    }
+    
+    await interaction.editReply("Posting plate...");
+    
+    if (queue.length === 0) {
+        await interaction.editReply("There is no plate to post - please review some plates first.");
+        return;
+    }
+    
+    await bot.post(queue.pop());
+    fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
+    
+    updateStatus(queue);
+    await notifyQueueAmount(queue);
+    
+    await interaction.editReply("Posted plate!");
 }
 
 async function optInForUser(interaction) {
@@ -298,7 +320,7 @@ async function startReviewProcessForUser(interaction) {
                         .setLabel("I'm finished reviewing plates")
                         .setStyle(ButtonStyle.Secondary)
                         .setCustomId("finished")
-                        .setDisabled(approvedPlates.length === 0)
+                        .setDisabled(/*approvedPlates.length === 0*/ false)
                 );
             
             const examplePostText = util.format(bot.formats.previewpost,
@@ -335,14 +357,14 @@ async function startReviewProcessForUser(interaction) {
                         plate.approval.time = new Date();
                         app.addPlatesToQueue([plate]);
                         approvedPlates.push(plate);
-                        updateStatus(app.getQueue().length);
+                        updateStatus(app.getQueue());
                         text = `**Approved \`${plate.text}\`.** Fetching next plate...`;
                         break;
                     case "disapprove":
                         app.log(`"${tag}" (${userid}) disapproved plate \`${plate.text}\`.`);
                         bot.removePlate(plate);
                         text = `**Disapproved \`${plate.text}\`.** Fetching next plate...`;
-                        break
+                        break;
                     case "finished":
                         app.log(`"${tag}" (${userid}) stopped reviewing plates.`);
                         isReviewing = false;
@@ -393,20 +415,21 @@ async function updateNotification(notification, plate, urls, finished) {
     await notification.edit(body);
 }
 
-async function notifyQueueAmount(queueAmount) {
-    await channel.send(`There are **${queueAmount}** plate${queueAmount!==1?"s":""} left in the queue.`);
+async function notifyQueueAmount(queue) {
+    const one = queue.length!==1?"s":"";
+    await channel.send(`There ${one?"is":"are"} **${queue.length}** plate${one?"":"s"} left in the queue.`);
     
-    if (queueAmount === 0)
-        await process();
+    //if (queue.length === 0)
+    //    await _process();
 }
 
-function updateStatus(queueAmount) {
-    client.user.setPresence({ activities: [{ name: `${queueAmount} plate${queueAmount!==1?"s":""} left to be posted` }] });
+function updateStatus(queue) {
+    client.user.setPresence({ activities: [{ name: `${queue.length} plate${queue.length!==1?"s":""} left to be posted` }] });
 }
 
 export default {
     initialize,
-    process,
+    _process,
     notify,
     updateNotification,
     notifyQueueAmount,

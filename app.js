@@ -19,14 +19,15 @@ async function log(...data) {
 }
 
 async function run() {
-    while (queue.length === 0);
-        addPlatesToQueue(await moderation.process());
+    //THE PROBLEM LINES
+    //while (queue.length === 0);
+    //    addPlatesToQueue(await moderation._process());
     
     await bot.post(queue.pop());
     fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
     
-    moderation.updateStatus(queue.length);
-    await moderation.notifyQueueAmount(queue.length);
+    moderation.updateStatus(queue);
+    moderation.notifyQueueAmount(queue);
 }
 
 async function initialize() {
@@ -100,4 +101,4 @@ function addPlatesToQueue(plates) {
 
 initialize();
 
-export default { log, getQueue, addPlatesToQueue };
+export default { log, getQueue, addPlatesToQueue, run };
