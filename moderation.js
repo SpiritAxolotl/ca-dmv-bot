@@ -74,8 +74,9 @@ function initialize(credentials) {
                     break;
                 case "queue":
                     const queue = app.getQueue().map(plate => `\`${plate.text}\``);
+                    const one = queue.length===1?"s":"";
                     
-                    await interaction.editReply(queue.length === 0 ? "There are no plates in the queue." : `There are **${queue.length}** plate${queue.length!==1?"s":""} left to be posted, and they are (from first to last): ${queue.reverse().join(", ")}.`);
+                    await interaction.editReply(queue.length === 0 ? "There are no plates in the queue." : `There ${one?"is":"are"} **${queue.length}** plate${one?"":"s"} left to be posted, and they are (from first to last): ${queue.reverse().join(", ")}.`);
                     break;
                 case "optin":
                     await optInForUser(interaction);
@@ -416,11 +417,11 @@ async function updateNotification(notification, plate, urls, finished) {
 
 async function notifyQueueAmount() {
     const queue = app.getQueue();
-    const one = queue.length!==1?"s":"";
+    const one = queue.length===1?"s":"";
     await channel.send(`There ${one?"is":"are"} **${queue.length}** plate${one?"":"s"} left in the queue.`);
     
-    //if (queue.length === 0)
-    //    await _process();
+    if (queue.length === 0)
+        await _process();
 }
 
 function updateStatus() {

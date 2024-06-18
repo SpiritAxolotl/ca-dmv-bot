@@ -1,5 +1,6 @@
 import cohost from "cohost";
 import app from "./../app.js";
+import fs from "fs-extra";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import util from "node:util";
