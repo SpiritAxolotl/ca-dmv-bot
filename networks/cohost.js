@@ -45,7 +45,7 @@ async function post(plate) {
         verdict,
         plate.approval.user.tag, //thankfully we don't need to sanitize because discord's new username system can only have characters that match /[a-z0-9_-]/ (we are hoping a bot user doesn't do this)
         plate.approval.user.id,
-        plate.approval.time.toISOString()
+        plate.approval.time?.toISOString()
     );
     const altText = bot.formatAltText(plate.text).replaceAll(`"`, "").replaceAll(".", "");
     

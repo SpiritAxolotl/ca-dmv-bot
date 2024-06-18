@@ -91,6 +91,7 @@ async function initialize() {
 }
 
 function getQueue() {
+    queue = JSON.parse(fs.readFileSync("./data/queue.json"));
     return queue;
 }
 

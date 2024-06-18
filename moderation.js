@@ -47,8 +47,6 @@ function initialize(credentials) {
             )
                 return;
             
-            let queue = app.getQueue();
-            
             //if (![].includes(interaction.commandName))
             await interaction.deferReply({ ephemeral: ephemeral });
             
@@ -75,7 +73,7 @@ function initialize(credentials) {
                     await startReviewProcessForUser(interaction);
                     break;
                 case "queue":
-                    queue = queue.map(plate => `\`${plate.text}\``);
+                    const queue = app.getQueue().map(plate => `\`${plate.text}\``);
                     
                     await interaction.editReply(queue.length === 0 ? "There are no plates in the queue." : `There are **${queue.length}** plate${queue.length!==1?"s":""} left to be posted, and they are (from first to last): ${queue.reverse().join(", ")}.`);
                     break;
@@ -199,8 +197,8 @@ async function post(interaction) {
     await bot.post(queue.pop());
     fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
     
-    updateStatus(queue);
-    await notifyQueueAmount(queue);
+    updateStatus();
+    await notifyQueueAmount();
     
     await interaction.editReply("Posted plate!");
 }
@@ -358,7 +356,7 @@ async function startReviewProcessForUser(interaction) {
                         plate.approval.time = new Date();
                         app.addPlatesToQueue([plate]);
                         approvedPlates.push(plate);
-                        updateStatus(app.getQueue());
+                        updateStatus();
                         text = `**Approved \`${plate.text}\`.** Fetching next plate...`;
                         break;
                     case "disapprove":
@@ -424,7 +422,8 @@ async function notifyQueueAmount(queue) {
     //    await _process();
 }
 
-function updateStatus(queue) {
+function updateStatus() {
+    const queue = app.getQueue();
     client.user.setPresence({ activities: [{ name: `${queue.length} plate${queue.length!==1?"s":""} left to be posted` }] });
 }
 
