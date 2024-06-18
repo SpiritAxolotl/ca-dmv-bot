@@ -63,6 +63,8 @@ async function post(plate) {
         };
         const draftId = await cohost.Post.create(project, basePost);
         app.log("uploading attachment...");
+        if (!fs.existsSync(path.resolve(__dirname, plate.fileName)))
+            await bot.getPlate(plate.text);
         const attachmentData = await project.uploadAttachment(
             draftId,
             path.resolve(__dirname, plate.fileName)

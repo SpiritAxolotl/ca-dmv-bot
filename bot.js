@@ -124,24 +124,27 @@ async function post(plate) {
     const notification = await moderation.notify(plate);
     const urls = {};
     
+    let remove = true;
     for (const [_, service] of Object.entries(services)) {
         try {
             urls[service.name] = await service.post(plate);
         } catch (e) {
+            remove = false;
             urls[service.name] = `Service had an error: Error: \`${e.toString()}\``;
         }
         await moderation.updateNotification(notification, plate, urls, Object.keys(urls).length === Object.keys(services).length);
     }
     
-    removePlate(plate);
+    if (remove)
+        removePlate(plate);
     
     process.stdout.write("posted!\n");
 }
 
-async function getPlate() {
+async function getPlate(plat) {
     const fileName = `./data/tmp/${crypto.randomBytes(16).toString("hex")}.png`;
     const index = Math.floor(Math.random() * records.length);
-    const plate = records[index];
+    const plate = plat ? records.find(e => e.text === plat) : records[index];
     
     await drawPlateImage(plate.text, fileName);
     
@@ -254,5 +257,6 @@ export default {
     removePlate,
     removePlateFromRecords,
     updateBio,
-    formatAltText
+    formatAltText,
+    drawPlateImage
 };
