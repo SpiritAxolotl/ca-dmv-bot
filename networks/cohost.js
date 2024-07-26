@@ -63,6 +63,7 @@ async function post(plate) {
             cws: []
         };
         const draftId = await cohost.Post.create(project, basePost);
+        app.log(`attempting to post plate \`${plate.text}\``);
         app.log("uploading attachment...");
         if (!fs.existsSync(path.resolve(__dirname, plate.fileName)))
             await bot.getPlate(plate.text);
@@ -70,6 +71,7 @@ async function post(plate) {
             draftId,
             path.resolve(__dirname, plate.fileName)
         );
+        app.log("successfully uploaded!");
         await cohost.Post.update(project, draftId, {
             ...basePost,
             postState: 1,
@@ -79,7 +81,8 @@ async function post(plate) {
             ],
             tags: [...basePost.tags]
         });
-        resolve(`https://cohost.org/${handle}/post/${draftId}-${plate.text.toLowerCase().replaceAll(/[^a-z0-9-]/g, "-")}-plate`);
+        resolve(`https://cohost.org/${handle}/post/${draftId}-${plate.text.toLowerCase().replaceAll(/[^a-z0-9-]+/g, "-")}-plate`);
+        app.log(`successfully posted plate \`${plate.text}\`!`);
     });
 }
 

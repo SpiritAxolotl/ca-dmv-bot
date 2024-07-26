@@ -118,7 +118,8 @@ function correctClericalErrors(comment) {
     return comment;
 }
 
-async function post(plate) {
+async function post(plate, custom) {
+    custom ??= true;
     process.stdout.write(`Posting plate "${plate.text}"... `);
     
     const notification = await moderation.notify(plate);
@@ -135,7 +136,7 @@ async function post(plate) {
         await moderation.updateNotification(notification, plate, urls, Object.keys(urls).length === Object.keys(services).length);
     }
     
-    if (remove)
+    if (remove && !custom)
         removePlate(plate);
     
     process.stdout.write("posted!\n");
@@ -182,11 +183,12 @@ function drawPlateImage(text, fileName) {
         // Draw license plate text
         plate.fill("#1F2A64");
         plate.font(path.join(__dirname, "resources", "fonts", "licenseplate.ttf"), 240);
-        plate.drawText(0, 80, text, "center").raise(10, 190);
+        plate.drawText(0, 80, text.trim(), "center").raise(10, 190);
         
         // Draw watermark
         plate.fill("none");
         plate.font(path.join(__dirname, "resources", "fonts", "cascadiacode.ttf"), 25);
+        //this has a weird artifact but it doesn't really matter
         plate.stroke("#AAAAAA", 2);
         plate.drawText(25, 25, repositoryURL, "southeast");
         plate.stroke("none");
@@ -210,7 +212,7 @@ function drawPlateImage(text, fileName) {
                 
                 fs.rmSync(overlayFileName);
                 resolve();
-            })
+            });
         });
     });
 }

@@ -52,77 +52,125 @@ function initialize(credentials) {
             
             await interaction.guild.roles.fetch();
             
-            switch (interaction.commandName) {
-                case "ping":
-                    await interaction.editReply("Pong!"); //should return ms
-                    break;
-                case "bio":
-                    if (interaction.user.id !== ownerUserId) {
-                        await interaction.editReply("You are not authorized to use this command.");
-                        return;
-                    }
-                    
-                    await bot.updateBio();
-                    await interaction.editReply("Refreshed bio!");
-                    
-                    break;
-                case "post":
-                    await post(interaction);
-                    break;
-                case "review":
-                    await startReviewProcessForUser(interaction);
-                    break;
-                case "queue":
-                    const queue = app.getQueue().map(plate => `\`${plate.text}\``);
-                    const one = queue.length===1?"s":"";
-                    
-                    await interaction.editReply(queue.length === 0 ? "There are no plates in the queue." : `There ${one?"is":"are"} **${queue.length}** plate${one?"":"s"} left to be posted, and they are (from first to last): ${queue.reverse().join(", ")}.`);
-                    break;
-                case "optin":
-                    await optInForUser(interaction);
-                    break;
-                case "optout":
-                    if (!interaction.member.roles.cache.find(role => role.id === moderatorRoleId)) {
-                        app.log(`"${interaction.user.tag}" (${interaction.user.id}) tried to opt out without the moderator role!`);
-                        await interaction.editReply({
-                            content: `You didn't have the <@&${moderatorRoleId}> role!`,
-                            ephemeral: true
-                        });
-                        return;
-                    }
-                    app.log(`"${interaction.user.tag}" (${interaction.user.id}) opted out`);
-                    interaction.member.roles.remove(moderatorRoleId);
-                    await interaction.editReply({
-                        content: `You've successfully opted out of the <@&${moderatorRoleId}> role.`,
-                        ephemeral: true
-                    });
-                    break;
-                case "run":
-                    await app.run();
-                    await interaction.editReply({
-                        content: `Run!`,
-                        ephemeral: true
-                    });
-                    break;
-            }
+            await handleCommands(interaction);
         });
     });
+}
+
+async function handleCommands(interaction) {
+    switch (interaction.commandName) {
+        case "ping":
+            await interaction.editReply("Pong!"); //should return ms
+            break;
+        case "bio":
+            if (interaction.user.id !== ownerUserId) {
+                await interaction.editReply("You are not authorized to use this command.");
+                return;
+            }
+            
+            await bot.updateBio();
+            await interaction.editReply("Refreshed bio!");
+            
+            break;
+        case "post":
+            await post(interaction);
+            break;
+        case "post_custom":
+            await post(interaction, true);
+            break;
+        case "review":
+            await startReviewProcessForUser(interaction);
+            break;
+        case "queue":
+            const queue = app.getQueue().map(plate => `\`${plate.text}\``);
+            const one = queue.length===1?"s":"";
+            
+            if (queue.length === 0)
+                await interaction.editReply("There are no plates in the queue.");
+            else
+                await interaction.editReply(`There ${one?"is":"are"} **${queue.length}** plate${one?"":"s"} left to be posted, and they are (from first to last): ${queue.reverse().join(", ")}.`);
+            break;
+        case "optin":
+            await optInForUser(interaction);
+            break;
+        case "optout":
+            if (!interaction.member.roles.cache.find(role => role.id === moderatorRoleId)) {
+                app.log(`"${interaction.user.tag}" (${interaction.user.id}) tried to opt out without the moderator role!`);
+                await interaction.editReply({
+                    content: `You didn't have the <@&${moderatorRoleId}> role!`,
+                    ephemeral: true
+                });
+                return;
+            }
+            app.log(`"${interaction.user.tag}" (${interaction.user.id}) opted out`);
+            interaction.member.roles.remove(moderatorRoleId);
+            await interaction.editReply({
+                content: `You've successfully opted out of the <@&${moderatorRoleId}> role.`,
+                ephemeral: true
+            });
+            break;
+        case "run":
+            await app.run();
+            await interaction.editReply({
+                content: `Run!`,
+                ephemeral: true
+            });
+            break;
+        case "plate":
+            const text = interaction.options.getString("text", true).toUpperCase().trim();
+            await bot.drawPlateImage(text, `./data/tmp/${text}.png`);
+            await interaction.editReply({
+                content: `Here's your custom plate:`,
+                files: [ new AttachmentBuilder(`./data/tmp/${text}.png`) ],
+                ephemeral: false
+            });
+            break;
+        //case "post_custom":
+            //bot
+    }
 }
 
 async function deployCommands(token) {
     const rest = new REST({ version: "10" }).setToken(token);
     const commands = [
         new SlashCommandBuilder().setName("ping").setDescription("Replies with pong!").toJSON(),
+        new SlashCommandBuilder().setName("plate").setDescription("Create a plate with custom text").addStringOption(option=>option
+            .setName("text")
+            .setDescription("What text to put on the license plate. Must be 9 characters or less.")
+            .setRequired(true)
+        ).toJSON(),
         new SlashCommandBuilder().setName("post").setDescription("Manually posts the next plate in queue").toJSON(),
+        new SlashCommandBuilder().setName("post_custom").setDescription("Make a custom post (will be tagged as community submission)")
+        .addStringOption(option=>option
+            .setName("customer")
+            .setDescription("What the customer's spiel is. Max 190 characters.")
+            .setRequired(true)
+        ).addStringOption(option=>option
+            .setName("dmv")
+            .setDescription("What the DMV's response is. Max 190 characters.")
+            .setRequired(true)
+        ).addBooleanOption(option=>option
+            .setName("verdict")
+            .setDescription("What the final verdict is. True = APPROVED, False = DENIED")
+            .setRequired(true)
+        ).addStringOption(option=>option
+            .setName("submitter")
+            .setDescription("The handle of the cohost project that submitted this. Omit for \"Anonymous User\".")
+            .setRequired(false)
+        ).addBooleanOption(option=>option
+            .setName("draft")
+            .setDescription("Whether this should be published as a draft or not. Default: True")
+            .setRequired(false)
+        ).toJSON(),
         new SlashCommandBuilder().setName("run").setDescription("Manually run the bot!").toJSON(),
         new SlashCommandBuilder().setName("bio").setDescription("Updates the bot's bio").toJSON(),
-        new SlashCommandBuilder().setName("review").setDescription("Review some plates").addBooleanOption(option =>
-            option
-                .setName("ephemeral")
-                .setDescription("Whether or not the reply message should only be visible to you. Default: False")
-                .setRequired(false)
+        new SlashCommandBuilder().setName("review").setDescription("Review some plates").addBooleanOption(option=>option
+            .setName("ephemeral")
+            .setDescription("Whether or not the reply message should only be visible to you. Default: False")
+            .setRequired(false)
         ).toJSON(),
         new SlashCommandBuilder().setName("queue").setDescription("Returns the plates in the queue").toJSON(),
+        new SlashCommandBuilder().setName("shuffle").setDescription("Shuffles the queue").toJSON(),
         new SlashCommandBuilder().setName("optin").setDescription("Opt-in to the moderator role").toJSON(),
         new SlashCommandBuilder().setName("optout").setDescription("Opt-out of the moderator role").toJSON(),
     ];
@@ -181,7 +229,7 @@ function _process() {
     });
 }
 
-async function post(interaction) {
+async function post(interaction, custom) {
     if (interaction.user.id !== ownerUserId) {
         await interaction.editReply("You are not authorized to use this command.");
         return;
@@ -195,7 +243,7 @@ async function post(interaction) {
         return;
     }
     
-    await bot.post(queue.pop());
+    await bot.post(queue.pop(), custom);
     fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
     
     updateStatus();
