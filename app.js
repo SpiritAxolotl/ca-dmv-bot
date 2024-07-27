@@ -20,8 +20,8 @@ async function log(...data) {
 
 async function run() {
     //THE PROBLEM LINES
-    while (queue.length === 0);
-        addPlatesToQueue(await moderation._process());
+    //while (queue.length === 0);
+    //    addPlatesToQueue(await moderation._process());
     
     await bot.post(queue.pop());
     fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
