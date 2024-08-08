@@ -80,8 +80,8 @@ async function handleCommands(interaction) {
                 "text": interaction.options.getString("plate", true),
                 "customerComment": interaction.options.getString("customer", true),
                 "dmvComment": interaction.options.getString("dmv", true),
-                "verdict": interaction.options.getString("verdict", true),
-                "submitter": interaction.options.getString("submitter", true),
+                "verdict": interaction.options.getBoolean("verdict", true),
+                "submitter": interaction.options.getString("submitter", false),
                 "draft": interaction.options.getBoolean("draft", false) ?? true
             });
             await post(interaction, plate);
@@ -163,7 +163,7 @@ async function deployCommands(token) {
             .setRequired(true)
         ).addStringOption(option=>option
             .setName("verdict")
-            .setDescription("What the final verdict is. MUST BE ACCEPTED OR DENIED")
+            .setDescription("What the final verdict is. True = ACCEPTED, False = DENIED")
             .setRequired(true)
         ).addStringOption(option=>option
             .setName("submitter")
