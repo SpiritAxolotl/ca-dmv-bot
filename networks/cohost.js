@@ -57,7 +57,7 @@ async function post(plate, custom) {
     const altText = bot.formatAltText(plate.text).replaceAll(`"`, "").replaceAll(".", "");
     
     return new Promise(async (resolve) => {
-        let tags = [...globalTags, `VERDICT: ${verdict}`, `license plate "${plate.text}"`];
+        let tags = [...globalTags, `Verdict: ${verdict}`, `license plate "${plate.text}"`];
         if (custom) tags.push("community plate");
         const basePost = {
             postState: 0, //draft
