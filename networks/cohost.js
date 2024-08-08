@@ -37,9 +37,15 @@ async function authenticate(credentials) {
     });
 }
 
-async function post(plate) {
+async function post(plate, custom) {
     const verdict = plate.verdict === true ? "ACCEPTED" : plate.verdict === false ? "DENIED" : "(NOT ON RECORD)";
-    const text = util.format(bot.formats.post,
+    const text = custom ? util.format(bot.formats.postCustom,
+        plate.text,
+        plate.submitter ? `@${plate.submitter}` : `**Anonymous User**`,
+        plate.customerComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
+        plate.dmvComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
+        verdict
+    ) : util.format(bot.formats.post,
         plate.text,
         plate.customerComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
         plate.dmvComment.replaceAll("\n", "\n&nbsp;&nbsp;&nbsp;&nbsp;"),
@@ -51,15 +57,17 @@ async function post(plate) {
     const altText = bot.formatAltText(plate.text).replaceAll(`"`, "").replaceAll(".", "");
     
     return new Promise(async (resolve) => {
+        let tags = [...globalTags, `VERDICT: ${verdict}`, `license plate "${plate.text}"`];
+        if (custom) tags.push("community plate");
         const basePost = {
             postState: 0, //draft
-            headline: "",
+            headline: custom ? `Community Plate!` : "",
             adultContent: false,
             blocks: [{
                 type: "markdown",
                 markdown: { content: text }
             }],
-            tags: [...globalTags, `VERDICT: ${verdict}`, `license plate "${plate.text}"`],
+            tags: tags,
             cws: []
         };
         const draftId = await cohost.Post.create(project, basePost);
@@ -74,7 +82,7 @@ async function post(plate) {
         app.log("successfully uploaded!");
         await cohost.Post.update(project, draftId, {
             ...basePost,
-            postState: 1,
+            postState: plate.draft === true ? 0 : 1,
             blocks: [
                 ...basePost.blocks,
                 { type: "attachment", attachment: { ...attachmentData, altText: altText } }

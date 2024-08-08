@@ -76,7 +76,15 @@ async function handleCommands(interaction) {
             await post(interaction);
             break;
         case "post_custom":
-            await post(interaction, true);
+            const plate = await bot.getPlate({
+                "text": interaction.options.getString("plate", true),
+                "customerComment": interaction.options.getString("customerComment", true),
+                "dmvComment": interaction.options.getString("dmvComment", true),
+                "verdict": interaction.options.getString("verdict", true),
+                "submitter": interaction.options.getString("submitter", true),
+                "draft": interaction.options.getBoolean("draft", false) ?? true
+            });
+            await post(interaction, plate);
             break;
         case "review":
             await startReviewProcessForUser(interaction);
@@ -146,11 +154,11 @@ async function deployCommands(token) {
             .setDescription("What text to put on the license plate. Must be 9 characters or less.")
             .setRequired(true)
         ).addStringOption(option=>option
-            .setName("customer")
+            .setName("customerComment")
             .setDescription("What the customer's spiel is. Max 190 characters.")
             .setRequired(true)
         ).addStringOption(option=>option
-            .setName("dmv")
+            .setName("dmvComment")
             .setDescription("What the DMV's response is. Max 190 characters.")
             .setRequired(true)
         ).addBooleanOption(option=>option
@@ -198,7 +206,7 @@ async function interactionFilter(interaction) {
 }
 
 function isOwner(interaction) {
-    app.log(`${interaction.user.id} (${typeof interaction.user.id})\n${ownerUserId} (${typeof ownerUserId})`);
+    //app.log(`${interaction.user.id} (${typeof interaction.user.id})\n${ownerUserId} (${typeof ownerUserId})`);
     return ownerUserId.includes(interaction.user.id);
 }
 
@@ -246,14 +254,20 @@ async function post(interaction, custom) {
     
     await interaction.editReply("Posting plate...");
     
-    const queue = app.getQueue();
-    if (queue.length === 0) {
-        await interaction.editReply("There is no plate to post - please review some plates first.");
-        return;
+    if (!custom) {
+        const queue = app.getQueue();
+        if (queue.length === 0) {
+            await interaction.editReply("There is no plate to post - please review some plates first.");
+            return;
+        }
     }
     
-    await bot.post(queue.pop(), custom);
-    fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
+    if (custom)
+        await bot.post(custom);
+    else {
+        await bot.post(queue.pop());
+        fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
+    }
     
     updateStatus();
     await notifyQueueAmount();

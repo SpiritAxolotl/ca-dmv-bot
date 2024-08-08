@@ -36,7 +36,8 @@ const formats = {
     //update this for crediting people maybe?
     bio: `Real personalized license plate applications that the California DMV received from 2015-2017. Posts hourly. Not the CA DMV. (%d% complete)`,
     post: `<!-- %s plate -->\nCustomer: %s\nDMV: %s\n\nVerdict: %s\n<!-- plate approved by \`%s\` (%s) on %s -->`,
-    previewpost: `Customer: %s\nDMV: %s\n\nVerdict: %s\n`
+    postCustom: `<!-- %s plate -->\nSubmission by %s\n\nCustomer: %s\nDMV: %s\n\nVerdict: %s`,
+    previewpost: `Customer: %s\nDMV: %s\n\nVerdict: %s`
 };
 
 let records = [];
@@ -119,8 +120,8 @@ function correctClericalErrors(comment) {
 }
 
 async function post(plate, custom) {
-    custom ??= true;
-    process.stdout.write(`Posting plate "${plate.text}"... `);
+    custom ??= false;
+    process.stdout.write(`Posting plate "${plate.text}"...`);
     
     const notification = await moderation.notify(plate);
     const urls = {};
@@ -145,12 +146,13 @@ async function post(plate, custom) {
 async function getPlate(plat) {
     const fileName = `./data/tmp/${crypto.randomBytes(16).toString("hex")}.png`;
     const index = Math.floor(Math.random() * records.length);
-    const plate = plat ? records.find(e => e.text === plat) : records[index];
+    const plate = plat ?? records.find(e => e.text === plat) ?? records[index];
     
     await drawPlateImage(plate.text, fileName);
     
     return {
-        "index": index,
+        "custom": plat ? true : false,
+        "index": plat ? undefined : index,
         "fileName": path.resolve(fileName),
         "text": plate.text,
         "customerComment": plate.customerComment,
@@ -159,7 +161,9 @@ async function getPlate(plat) {
         "approval": { //to be set by moderation.js
             user: "",
             time: new Date(0)
-        }
+        },
+        "submitter": plate?.submitter,
+        "draft": plate?.draft
     };
 }
 
@@ -169,6 +173,7 @@ function removePlateFromRecords(plate) {
 }
 
 function removePlate(plate) {
+    app.log(`removing plate \`${plate}\` from the queue...`);
     fs.unlinkSync(plate.fileName);
     
     const posted = JSON.parse(fs.readFileSync("./data/posted.json"));
