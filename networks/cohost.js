@@ -38,7 +38,7 @@ async function authenticate(credentials) {
 }
 
 async function post(plate, custom) {
-    const verdict = plate.verdict === true ? "ACCEPTED" : plate.verdict === false ? "DENIED" : "(NOT ON RECORD)";
+    const verdict = plate.verdict === true ? "ACCEPTED" : plate.verdict === false ? "DENIED" : custom ? plate.verdict : "(NOT ON RECORD)";
     const text = custom ? util.format(bot.formats.postCustom,
         plate.text,
         plate.submitter ? `@${plate.submitter}` : `**Anonymous User**`,

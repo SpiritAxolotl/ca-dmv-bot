@@ -163,7 +163,7 @@ async function deployCommands(token) {
             .setRequired(true)
         ).addStringOption(option=>option
             .setName("verdict")
-            .setDescription("What the final verdict is. MUST BE APPROVED OR DENIED")
+            .setDescription("What the final verdict is. MUST BE ACCEPTED OR DENIED")
             .setRequired(true)
         ).addStringOption(option=>option
             .setName("submitter")
