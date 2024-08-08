@@ -78,8 +78,8 @@ async function handleCommands(interaction) {
         case "post_custom":
             const plate = await bot.getPlate({
                 "text": interaction.options.getString("plate", true),
-                "customerComment": interaction.options.getString("customerComment", true),
-                "dmvComment": interaction.options.getString("dmvComment", true),
+                "customerComment": interaction.options.getString("customer", true),
+                "dmvComment": interaction.options.getString("dmv", true),
                 "verdict": interaction.options.getString("verdict", true),
                 "submitter": interaction.options.getString("submitter", true),
                 "draft": interaction.options.getBoolean("draft", false) ?? true
@@ -154,11 +154,11 @@ async function deployCommands(token) {
             .setDescription("What text to put on the license plate. Must be 9 characters or less.")
             .setRequired(true)
         ).addStringOption(option=>option
-            .setName("customerComment")
+            .setName("customer")
             .setDescription("What the customer's spiel is. Max 190 characters.")
             .setRequired(true)
         ).addStringOption(option=>option
-            .setName("dmvComment")
+            .setName("dmv")
             .setDescription("What the DMV's response is. Max 190 characters.")
             .setRequired(true)
         ).addBooleanOption(option=>option
