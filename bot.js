@@ -129,7 +129,7 @@ async function post(plate, custom) {
     let remove = true;
     for (const [_, service] of Object.entries(services)) {
         try {
-            urls[service.name] = await service.post(plate);
+            urls[service.name] = await service.post(plate, custom);
         } catch (e) {
             remove = false;
             urls[service.name] = `Service had an error: Error: \`${e.toString()}\``;
