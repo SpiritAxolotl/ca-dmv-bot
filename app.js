@@ -37,9 +37,7 @@ async function initialize() {
         token: process.env.DISCORD_TOKEN,
         channelId: process.env.DISCORD_CHANNEL_ID,
         moderatorRoleId: process.env.DISCORD_MODERATOR_ROLE_ID,
-        ownerUserId: process.env.DISCORD_OWNER_USER_ID.includes(",") ?
-            process.env.DISCORD_OWNER_USER_ID.split(",") :
-            process.env.DISCORD_OWNER_USER_ID,
+        ownerUserId: process.env.DISCORD_OWNER_USER_ID.split(","),
         trustedOptInRoleId: process.env.DISCORD_TRUSTED_OPTIN_ROLE_ID
     });
     

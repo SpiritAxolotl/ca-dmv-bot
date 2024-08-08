@@ -198,11 +198,8 @@ async function interactionFilter(interaction) {
 }
 
 function isOwner(interaction) {
-    const id = interaction.user.id;
-    if (typeof ownerUserId === "array")
-        return ownerUserId.includes(id);
-    else
-        return ownerUserId === id;
+    app.log(`${interaction.user.id} (${typeof interaction.user.id})\n${ownerUserId} (${typeof ownerUserId})`);
+    return ownerUserId.includes(interaction.user.id);
 }
 
 function _process() {
