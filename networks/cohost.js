@@ -61,7 +61,7 @@ async function post(plate, custom) {
         if (custom) tags.push("community plate");
         const basePost = {
             postState: 0, //draft
-            headline: custom ? `Community Plate!` : "",
+            headline: "",
             adultContent: false,
             blocks: [{
                 type: "markdown",

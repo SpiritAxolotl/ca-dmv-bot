@@ -36,7 +36,7 @@ const formats = {
     //update this for crediting people maybe?
     bio: `Real personalized license plate applications that the California DMV received from 2015-2017. Posts hourly. Not the CA DMV. (%d% complete)`,
     post: `<!-- %s plate -->\nCustomer: %s\nDMV: %s\n\nVerdict: %s\n<!-- plate approved by \`%s\` (%s) on %s -->`,
-    postCustom: `<!-- %s plate -->\nSubmission by %s\n\nCustomer: %s\nDMV: %s\n\nVerdict: %s`,
+    postCustom: `<!-- %s plate -->\n### Community Plate!\nSubmission by %s\n\nCustomer: %s\nDMV: %s\n\nVerdict: %s`,
     previewpost: `Customer: %s\nDMV: %s\n\nVerdict: %s`
 };
 
