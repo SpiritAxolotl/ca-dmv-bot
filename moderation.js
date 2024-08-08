@@ -63,7 +63,7 @@ async function handleCommands(interaction) {
             await interaction.editReply("Pong!"); //should return ms
             break;
         case "bio":
-            if (interaction.user.id !== ownerUserId) {
+            if (!isOwner(interaction)) {
                 await interaction.editReply("You are not authorized to use this command.");
                 return;
             }
@@ -142,6 +142,10 @@ async function deployCommands(token) {
         new SlashCommandBuilder().setName("post").setDescription("Manually posts the next plate in queue").toJSON(),
         new SlashCommandBuilder().setName("post_custom").setDescription("Make a custom post (will be tagged as community submission)")
         .addStringOption(option=>option
+            .setName("plate")
+            .setDescription("What text to put on the license plate. Must be 9 characters or less.")
+            .setRequired(true)
+        ).addStringOption(option=>option
             .setName("customer")
             .setDescription("What the customer's spiel is. Max 190 characters.")
             .setRequired(true)
@@ -185,12 +189,20 @@ async function interactionFilter(interaction) {
     const member = channel.guild.members.cache.get(interaction.user.id);
     const sameChannel = interaction.channelId === channel.id;
     const testing = process.env.TESTING;
-    const owner = interaction.user.id === ownerUserId;
+    const owner = isOwner(interaction);
     if (owner) return true;
     if (!sameChannel) return false;
     if (testing && member.bot && member.roles.cache.has(moderatorRoleId)) return true;
     if (!member.bot && member.roles.cache.has(moderatorRoleId)) return true;
     return false;
+}
+
+function isOwner(interaction) {
+    const id = interaction.user.id;
+    if (typeof ownerUserId === "array")
+        return ownerUserId.includes(id);
+    else
+        return ownerUserId === id;
 }
 
 function _process() {
@@ -230,7 +242,7 @@ function _process() {
 }
 
 async function post(interaction, custom) {
-    if (interaction.user.id !== ownerUserId) {
+    if (!isOwner(interaction)) {
         await interaction.editReply("You are not authorized to use this command.");
         return;
     }
