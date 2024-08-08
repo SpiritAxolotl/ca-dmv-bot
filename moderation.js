@@ -246,7 +246,7 @@ function _process() {
     });
 }
 
-async function post(interaction, custom) {
+async function post(interaction, plate) {
     if (!isOwner(interaction)) {
         await interaction.editReply("You are not authorized to use this command.");
         return;
@@ -254,7 +254,7 @@ async function post(interaction, custom) {
     
     await interaction.editReply("Posting plate...");
     
-    if (!custom) {
+    if (!plate) {
         const queue = app.getQueue();
         if (queue.length === 0) {
             await interaction.editReply("There is no plate to post - please review some plates first.");
@@ -262,8 +262,8 @@ async function post(interaction, custom) {
         }
     }
     
-    if (custom)
-        await bot.post(custom);
+    if (plate)
+        await bot.post(plate, true);
     else {
         await bot.post(queue.pop());
         fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
