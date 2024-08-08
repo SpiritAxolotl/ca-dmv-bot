@@ -173,7 +173,7 @@ function removePlateFromRecords(plate) {
 }
 
 function removePlate(plate) {
-    app.log(`removing plate \`${plate}\` from the queue...`);
+    app.log(`removing plate \`${plate.text}\` from the queue...`);
     fs.unlinkSync(plate.fileName);
     
     const posted = JSON.parse(fs.readFileSync("./data/posted.json"));
