@@ -161,7 +161,7 @@ async function deployCommands(token) {
             .setName("dmv")
             .setDescription("What the DMV's response is. Max 190 characters.")
             .setRequired(true)
-        ).addStringOption(option=>option
+        ).addBooleanOption(option=>option
             .setName("verdict")
             .setDescription("What the final verdict is. True = ACCEPTED, False = DENIED")
             .setRequired(true)
