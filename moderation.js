@@ -251,27 +251,25 @@ async function post(interaction, plate) {
         await interaction.editReply("You are not authorized to use this command.");
         return;
     }
-    
+
     await interaction.editReply("Posting plate...");
-    
-    if (!plate) {
+
+    if (plate) {
+        await bot.post(plate, true);
+    } else {
         const queue = app.getQueue();
         if (queue.length === 0) {
             await interaction.editReply("There is no plate to post - please review some plates first.");
             return;
         }
-    }
-    
-    if (plate)
-        await bot.post(plate, true);
-    else {
+
         await bot.post(queue.pop());
         fs.writeFileSync("./data/queue.json", JSON.stringify(queue));
     }
-    
+
     updateStatus();
     await notifyQueueAmount();
-    
+
     await interaction.editReply("Posted plate!");
 }
 
