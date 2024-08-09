@@ -134,7 +134,7 @@ async function post(plate, custom) {
             remove = false;
             urls[service.name] = `Service had an error: Error: \`${e.toString()}\``;
         }
-        await moderation.updateNotification(notification, plate, urls, Object.keys(urls).length === Object.keys(services).length);
+        await moderation.updateNotification(notification, plate, urls, Object.keys(urls).length === Object.keys(services).length, custom);
     }
     
     if (remove && !custom)

@@ -477,8 +477,8 @@ async function notify(plate) {
     return await channel.send(`Posting plate \`${plate.text}\`...`);
 }
 
-async function updateNotification(notification, plate, urls, finished) {
-    let body = `Posting plate \`${plate.text}\`...${finished ? " finished!" : ""}\n`;
+async function updateNotification(notification, plate, urls, finished, custom) {
+    let body = `Posting ${custom?" custom":""}plate \`${plate.text}\`...${finished ? " finished!" : ""}\n`;
     
     for (const [service, url] of Object.entries(urls))
         body += `**${service}:** <${url}>\n`;
