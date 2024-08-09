@@ -478,7 +478,7 @@ async function notify(plate) {
 }
 
 async function updateNotification(notification, plate, urls, finished, custom) {
-    let body = `Posting ${custom?" custom":""}plate \`${plate.text}\`...${finished ? " finished!" : ""}\n`;
+    let body = `Posting ${custom?"custom ":""}plate \`${plate.text}\`...${finished ? " finished!" : ""}\n`;
     
     for (const [service, url] of Object.entries(urls))
         body += `**${service}:** <${url}>\n`;
