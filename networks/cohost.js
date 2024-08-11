@@ -58,7 +58,7 @@ async function post(plate, custom) {
     
     return new Promise(async (resolve) => {
         let tags = [...globalTags, `Verdict: ${verdict}`, `license plate "${plate.text}"`];
-        if (custom) tags.push("community plate");
+        if (custom) tags.push("community plates");
         const basePost = {
             postState: 0, //draft
             headline: "",
